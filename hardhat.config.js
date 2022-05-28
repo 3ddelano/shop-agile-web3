@@ -25,8 +25,8 @@ module.exports = {
     // defaultNetwork: "matic",
     networks: {
         // matic: {
-        // url: "https://rpc-mumbai.maticvigil.com",
-        // accounts: [process.env.PRIVATE_KEY],
+        //     url: "https://rpc-mumbai.maticvigil.com",
+        //     accounts: [process.env.PRIVATE_KEY],
         // },
         hardhat: {
             chainId: 80001,
