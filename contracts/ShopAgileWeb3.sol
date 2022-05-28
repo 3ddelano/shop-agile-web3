@@ -13,81 +13,142 @@ contract ShopAgileWeb3 {
 
     event OrderPlaced(
         uint indexed orderId,
-        address indexed userId,
+        address indexed user,
         uint itemId,
         uint quantity,
         uint pickupLocationId
     );
+
     event OrderCollected(uint indexed orderId);
 
-    // ----------
-    // Item
-    // ----------
+    event ManagerAssigned(address indexed manager);
+    event ManagerDeassigned(address indexed manager);
+
     struct Item {
         string name;
         uint price;
-        int quantityInStock;
+        int stock;
         string ipfsURI;
-        // string imageURI;
-        // string description;
-        // uint[] ratings;
-    }
-
-    // ----------
-    // Order
-    // ----------
-    enum OrderStatus {
-        Ordered,
-        Pending,
-        Collected
     }
 
     struct Order {
-        address userAddress;
+        address user;
         uint itemId;
         uint quantity;
         uint pickupLocationId;
         OrderStatus status;
     }
 
+    enum OrderStatus {
+        Ordered,
+        Collected
+    }
+
     struct PickupLocation {
         string name;
         string location;
-        string description;
-        string contactNumber;
+        string city;
+        string state;
+        string phone;
     }
 
     address payable public owner;
-    address[] public managers;
+    mapping(address => bool) public isManager;
 
     // Number from 1-100 denoting the percetage of the order cost as fee
     uint8 public percentFee;
-    // Number denoting the base fee on each transaction
     uint public baseFee;
 
-    // Maps the orders of a given user
+    Item[] public items;
+    PickupLocation[] public pickupLocations;
     mapping(address => uint[]) public addressToOrderIds;
+    mapping(uint => Order) public idToOrder;
+
+    // Privates
     Counters.Counter private _orderIds;
     Counters.Counter private _itemIds;
 
-    // Maps the orderId to an Order
-    mapping(uint => Order) public idToOrder;
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can perform this action.");
+        _;
+    }
 
-    PickupLocation[] public pickupLocations;
+    modifier onlyMangager() {
+        require(
+            isManager[msg.sender],
+            "Only managers can perform this action."
+        );
+        _;
+    }
 
-    Item[] public items;
-
-    constructor(uint _baseFee, uint8 _percentFee) {
+    constructor(
+        uint _baseFee,
+        uint8 _percentFee,
+        // Initial items
+        uint[] memory itemPrices,
+        int[] memory itemStocks,
+        string[] memory itemNames,
+        string[] memory itemIpfsURIs,
+        // Initial pickupLocations
+        string[] memory pickupLocationNames,
+        string[] memory pickupLocationLocations,
+        string[] memory pickupLocationCities,
+        string[] memory pickupLocationStates,
+        string[] memory pickupLocationPhones
+    ) {
         baseFee = _baseFee;
         percentFee = _percentFee;
         owner = payable(msg.sender);
+        isManager[msg.sender] = true;
+
+        for (uint i = 0; i < itemNames.length; ++i) {
+            Item memory item = Item({
+                name: itemNames[i],
+                price: itemPrices[i],
+                stock: itemStocks[i],
+                ipfsURI: itemIpfsURIs[i]
+            });
+            items.push(item);
+        }
+
+        for (uint i = 0; i < pickupLocationNames.length; ++i) {
+            PickupLocation memory pickupLocation = PickupLocation({
+                name: pickupLocationNames[i],
+                location: pickupLocationLocations[i],
+                city: pickupLocationCities[i],
+                state: pickupLocationStates[i],
+                phone: pickupLocationPhones[i]
+            });
+            pickupLocations.push(pickupLocation);
+        }
+    }
+
+    function getAllItems() public view returns (Item[] memory) {
+        return items;
+    }
+
+    function getAllPickupLocations()
+        public
+        view
+        returns (PickupLocation[] memory)
+    {
+        return pickupLocations;
+    }
+
+    function getMyOrders() public view returns (Order[] memory) {
+        uint length = addressToOrderIds[msg.sender].length;
+        Order[] memory orders = new Order[](length);
+        for (uint i = 0; i < length; ++i) {
+            orders[i] = idToOrder[addressToOrderIds[msg.sender][i]];
+        }
+        return orders;
     }
 
     function placeOrder(
         uint itemId,
         uint quantity,
         uint pickupLocationId
-    ) public payable returns (uint orderId) {
+    ) public payable {
         // Check if valid item
         require(itemId < items.length, "Invalid itemId.");
         require(quantity >= 1, "Quantity must be greater than 0.");
@@ -101,26 +162,27 @@ contract ShopAgileWeb3 {
         Item memory item = items[itemId];
 
         // Check if item is a stock based item
-        if (item.quantityInStock > -1) {
+        if (item.stock > -1) {
             // Check item has enough stock for the order
-            require(
-                item.quantityInStock >= int(quantity),
-                "Not enough items in stock."
-            );
+            require(item.stock >= int(quantity), "Not enough items in stock.");
         }
 
         uint cost = ((item.price * quantity * percentFee) / 100) + baseFee;
+        console.log("Amount to pay is %s", cost);
         // Check if balance is sufficient
-        require(msg.value >= cost, "Insufficient balance to place order.");
+        require(msg.value == cost, "Pay the correct amount for order.");
 
         // Place the order
         Order memory order = Order({
-            userAddress: msg.sender,
+            user: msg.sender,
             itemId: itemId,
             quantity: quantity,
             pickupLocationId: pickupLocationId,
             status: OrderStatus.Ordered
         });
+
+        // Update stock of the item
+        items[itemId].stock -= int(quantity);
 
         _orderIds.increment();
         uint newOrderId = _orderIds.current();
@@ -134,35 +196,48 @@ contract ShopAgileWeb3 {
             quantity,
             pickupLocationId
         );
-
-        return newOrderId;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-    modifier onlyMangager() {
-        bool isManager = false;
-
-        for (uint i = 0; i < managers.length; i++) {
-            if (msg.sender == managers[i]) {
-                isManager = true;
-                break;
-            }
-        }
-
-        require(isManager, "You need to be a manager.");
-        _;
     }
 
     function collectOrder(uint orderId) public onlyMangager {
         require(
-            idToOrder[orderId].status == OrderStatus.Pending,
-            "Order is not pending."
+            idToOrder[orderId].status != OrderStatus.Collected,
+            "Order is already collected."
         );
         idToOrder[orderId].status = OrderStatus.Collected;
         emit OrderCollected(orderId);
+    }
+
+    function assignManagers(address[] memory _managers) public onlyOwner {
+        for (uint i = 0; i < _managers.length; ++i) {
+            address addr = _managers[i];
+            if (isManager[addr]) continue;
+            isManager[addr] = true;
+            emit ManagerAssigned(addr);
+        }
+    }
+
+    function unassignManager(address _addr) public onlyOwner {
+        require(isManager[_addr], "Address is not a manager.");
+        isManager[_addr] = false;
+        emit ManagerDeassigned(_addr);
+    }
+
+    function assignManager(address _manager) public onlyOwner {
+        require(!isManager[_manager], "Address is already a manager.");
+        isManager[_manager] = true;
+        emit ManagerAssigned(_manager);
+    }
+
+    function withdraw() public onlyOwner {
+        require(msg.sender == owner, "Only the owner can withdraw.");
+        owner.transfer(address(this).balance);
+    }
+
+    receive() external payable {
+        // Do nothing
+    }
+
+    fallback() external payable {
+        // Do nothing
     }
 }
