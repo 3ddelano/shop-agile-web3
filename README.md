@@ -22,6 +22,3 @@ Features
 - Login with Web3 Wallet
 - Transactions / Order Tracking on Polygon
 - Machine learning powered recommendations
-
-Tech Stack
---------------
