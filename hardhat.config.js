@@ -29,7 +29,8 @@ module.exports = {
         //     accounts: [process.env.PRIVATE_KEY],
         // },
         hardhat: {
-            chainId: 80001,
+            // chainId: 80001,
+            chainId: 31337,
         },
     },
 };
