@@ -1,9 +1,10 @@
 const chai = require("chai");
 const { expect } = chai;
 const { ethers } = require("hardhat");
+const { parseEther, parseUnits } = ethers.utils;
 
 let testData = {
-    baseFee: ethers.utils.parseEther("0.11"),
+    baseFee: parseEther("0.11"),
     percentFee: 75,
     managers: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
     // Initial 5 items
@@ -12,17 +13,21 @@ let testData = {
         "Bread Loaf",
         "Vanilla Cupcake",
         "Strawberry Muffin",
-        "Chocolate Chip Cookie",
+        "Garlic Bread",
     ],
     itemPrices: [
-        ethers.utils.parseUnits("5"),
-        ethers.utils.parseUnits("0.67"),
-        ethers.utils.parseUnits("0.559"),
-        ethers.utils.parseUnits("0.671"),
-        ethers.utils.parseUnits("0.223"),
+        parseUnits("2"),
+        parseUnits("0.67"),
+        parseUnits("0.559"),
+        parseUnits("0.671"),
+        parseUnits("0.223"),
     ],
     itemStocks: [-1, 200, 150, 150, 300],
-    itemIpfsURIs: ["URL1", "URL2", "URL3", "URL4", "URL5"],
+    itemTastes: ["sweet", "starchy", "sweet", "sweet", "pungent"],
+    itemColors: ["brown", "white", "off-white", "red", "white"],
+    itemTextures: ["silky", "soft", "soft", "soft", "soft"],
+    itemSizes: ["large", "medium", "small", "small", "small"],
+
     // Initial 5 pickupLocations
     pickLocNames: [
         "Pastry Palacio",
@@ -88,7 +93,6 @@ describe("ShopAgileWeb3 contract", function () {
                 testData.itemPrices,
                 testData.itemStocks,
                 testData.itemNames,
-                testData.itemIpfsURIs,
                 testData.pickLocNames,
                 testData.pickLocLocations,
                 testData.pickLocCities,
@@ -128,9 +132,7 @@ describe("ShopAgileWeb3 contract", function () {
             let items = await shopAgileWeb3.getAllItems();
             expect(items.length == testData.itemNames.length);
             expect(items[0].name).to.equal(testData.itemNames[0]);
-            expect(items[0].ipfsURI).to.equal(testData.itemIpfsURIs[0]);
             expect(items[1].name).to.equal(testData.itemNames[1]);
-            expect(items[1].ipfsURI).to.equal(testData.itemIpfsURIs[1]);
         });
 
         it("should set the initial pickup locations (getAllPickupLocations)", async () => {
@@ -153,7 +155,7 @@ describe("ShopAgileWeb3 contract", function () {
         it("should revert if quantity < 1", async () => {
             await expect(
                 shopAgileWeb3.placeOrder(0, 0, 1, {
-                    value: ethers.utils.parseEther("6.86"),
+                    value: parseEther("6.86"),
                 })
             ).to.be.revertedWith("Quantity must be greater than 0.");
         });
@@ -173,10 +175,7 @@ describe("ShopAgileWeb3 contract", function () {
         it("should accept order of stockless item", async () => {
             await expect(
                 shopAgileWeb3.placeOrder(0, 500, 0, {
-                    value: ethers.utils.parseUnits(
-                        "1875110000000000000000",
-                        "wei"
-                    ),
+                    value: parseUnits("750110000000000000000", "wei"),
                 })
             )
                 .to.emit(shopAgileWeb3, "OrderPlaced")
@@ -374,11 +373,6 @@ describe("ShopAgileWeb3 contract", function () {
 
             let balanceAfter = await owner.getBalance();
 
-            console.log(balanceBefore);
-            console.log(balanceAfter);
-
-            console.log(balanceAfter.sub(balanceBefore));
-
             let creditedAmount = successOrderCost.sub(
                 balanceAfter.sub(balanceBefore)
             );
@@ -387,9 +381,103 @@ describe("ShopAgileWeb3 contract", function () {
                 .to.be.true;
 
             expect(
-                creditedAmount.gt(ethers.BigNumber.from("40000000000000")),
+                creditedAmount.gt(ethers.BigNumber.from("30000000000000")),
                 "credited amount should be close to the order's cost"
             ).to.be.true;
+        });
+    });
+
+    describe("updateItemAttributes", async () => {
+        beforeEach(async () => {
+            let itemsToUpdate = [];
+
+            for (let i = 0; i < testData.itemTastes.length; ++i) {
+                itemsToUpdate.push(
+                    shopAgileWeb3.updateItemAttributes(
+                        i,
+                        testData.itemTastes[i],
+                        testData.itemColors[i],
+                        testData.itemTextures[i],
+                        testData.itemSizes[i]
+                    )
+                );
+            }
+
+            await Promise.all(itemsToUpdate);
+        });
+
+        it("should update item attributes", async () => {
+            let secondItem = await shopAgileWeb3.items(1);
+            expect(secondItem.taste).to.equal(testData.itemTastes[1]);
+            expect(secondItem.color).to.equal(testData.itemColors[1]);
+            expect(secondItem.texture).to.equal(testData.itemTextures[1]);
+            expect(secondItem.size).to.equal(testData.itemSizes[1]);
+        });
+
+        it("should revert if item doesn't exist", async () => {
+            await expect(
+                shopAgileWeb3.updateItemAttributes(
+                    testData.itemTastes.length + 1,
+                    "",
+                    "",
+                    "",
+                    ""
+                )
+            ).to.be.revertedWith("Invalid itemId.");
+        });
+
+        it("should revert if not called by manager", async () => {
+            await expect(
+                shopAgileWeb3
+                    .connect(user1)
+                    .updateItemAttributes(1, "", "", "", "")
+            ).to.be.revertedWith("Only managers can perform this action.");
+        });
+
+        it("should emit ItemAttributesUpdated event", async () => {
+            await expect(
+                shopAgileWeb3.updateItemAttributes(
+                    1,
+                    "TEST1",
+                    "TEST2",
+                    "TEST3",
+                    "TEST4"
+                )
+            )
+                .to.emit(shopAgileWeb3, "ItemAttributesUpdated")
+                .withArgs(1, "TEST1", "TEST2", "TEST3", "TEST4");
+        });
+    });
+
+    describe("addItem", async () => {
+        it("should add item successfully", async () => {
+            await expect(
+                shopAgileWeb3.addItem(
+                    "Test Item",
+                    parseEther("0.07"),
+                    10,
+                    "TASTE",
+                    "COLOR",
+                    "TEXTURE",
+                    "SIZE"
+                )
+            )
+                .to.emit(shopAgileWeb3, "ItemAdded")
+                .withArgs(testData.itemNames.length, [
+                    "Test Item",
+                    parseEther("0.07"),
+                    10,
+                    "TASTE",
+                    "COLOR",
+                    "TEXTURE",
+                    "SIZE",
+                ]);
+
+            let addedItem = await shopAgileWeb3.items(
+                testData.itemNames.length
+            );
+            expect(addedItem.name).to.equal("Test Item");
+            expect(addedItem.size).to.equal("SIZE");
         });
     });
 });

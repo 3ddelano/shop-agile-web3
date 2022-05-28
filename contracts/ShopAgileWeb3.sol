@@ -19,6 +19,14 @@ contract ShopAgileWeb3 {
 
     event OrderCollected(uint indexed orderId);
 
+    event ItemAdded(uint itemId, Item item);
+    event ItemAttributesUpdated(
+        uint indexed itemId,
+        string taste,
+        string color,
+        string texture,
+        string size
+    );
     event ManagerAssigned(address indexed manager);
     event ManagerDeassigned(address indexed manager);
 
@@ -26,7 +34,11 @@ contract ShopAgileWeb3 {
         string name;
         uint price;
         int stock;
-        string ipfsURI;
+        // Attributes
+        string taste;
+        string color;
+        string texture;
+        string size;
     }
 
     struct Order {
@@ -64,14 +76,13 @@ contract ShopAgileWeb3 {
 
     // Privates
     Counters.Counter private _orderIds;
-    Counters.Counter private _itemIds;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the owner can perform this action.");
         _;
     }
 
-    modifier onlyMangager() {
+    modifier onlyManager() {
         require(
             isManager[msg.sender],
             "Only managers can perform this action."
@@ -86,7 +97,6 @@ contract ShopAgileWeb3 {
         uint[] memory itemPrices,
         int[] memory itemStocks,
         string[] memory itemNames,
-        string[] memory itemIpfsURIs,
         // Initial pickupLocations
         string[] memory pickupLocationNames,
         string[] memory pickupLocationLocations,
@@ -104,7 +114,10 @@ contract ShopAgileWeb3 {
                 name: itemNames[i],
                 price: itemPrices[i],
                 stock: itemStocks[i],
-                ipfsURI: itemIpfsURIs[i]
+                taste: "",
+                color: "",
+                texture: "",
+                size: ""
             });
             items.push(item);
         }
@@ -196,7 +209,49 @@ contract ShopAgileWeb3 {
         );
     }
 
-    function collectOrder(uint orderId) public onlyMangager {
+    function addItem(
+        string memory name,
+        uint price,
+        int stock,
+        string memory taste,
+        string memory color,
+        string memory texture,
+        string memory size
+    ) public onlyManager {
+        Item memory item = Item({
+            name: name,
+            price: price,
+            stock: stock,
+            taste: taste,
+            color: color,
+            texture: texture,
+            size: size
+        });
+        items.push(item);
+
+        emit ItemAdded(items.length - 1, item);
+    }
+
+    function updateItemAttributes(
+        uint itemId,
+        string memory taste,
+        string memory color,
+        string memory texture,
+        string memory size
+    ) public onlyManager {
+        require(itemId < items.length, "Invalid itemId.");
+        Item memory item = items[itemId];
+        item.taste = taste;
+        item.color = color;
+        item.texture = texture;
+        item.size = size;
+
+        items[itemId] = item;
+
+        emit ItemAttributesUpdated(itemId, taste, color, texture, size);
+    }
+
+    function collectOrder(uint orderId) public onlyManager {
         require(
             idToOrder[orderId].status != OrderStatus.Collected,
             "Order is already collected."
