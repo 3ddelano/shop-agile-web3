@@ -32,7 +32,7 @@ function App() {
         let _contract = new ethers.Contract(
             contractAddress.ShopAgileWeb3,
             ShopAgileWeb3Artifact.abi,
-            _provider.getSigner(0)
+            _provider //.getSigner(0)
         );
         setContract(_contract);
         window.contract = _contract;
@@ -164,13 +164,35 @@ function App() {
                             return (
                                 <div
                                     key={idx}
-                                    className="bg-amber-200 rounded p-2"
+                                    className="bg-amber-200 rounded p-2 flex flex-col justify-between"
                                 >
-                                    <p>Name: {item.name}</p>
-                                    <p>Price: {item.price.toString()}</p>
-                                    {item.stock.gt(-1) && (
-                                        <p>Stock: {item.stock.toString()}</p>
-                                    )}
+                                    <div>
+                                        <p>Name: {item.name}</p>
+                                        <p>
+                                            Price:{" "}
+                                            {ethers.utils.formatUnits(
+                                                item.price,
+                                                "ether"
+                                            )}
+                                            {" ETH"}
+                                        </p>
+                                        {item.stock.gt(-1) && (
+                                            <p>
+                                                Stock: {item.stock.toString()}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="flex gap-2 mb-2">
+                                            <label htmlFor="count">
+                                                Quantity
+                                            </label>
+                                            <input type="number" />
+                                        </div>
+                                        <button className="bg-slate-300 px-1 py-0.5 rounded">
+                                            Place Order
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}

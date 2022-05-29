@@ -1,6 +1,6 @@
 const { parseEther, parseUnits } = ethers.utils;
 
-let testData = {
+let realData = {
     baseFee: parseEther("0.11"),
     percentFee: 75,
     managers: ["0x70997970C51812dc3A010C7d01b50e0d17dc79C8"],
@@ -13,11 +13,11 @@ let testData = {
         "Garlic Bread",
     ],
     itemPrices: [
-        parseUnits("2"),
-        parseUnits("0.67"),
-        parseUnits("0.559"),
-        parseUnits("0.671"),
-        parseUnits("0.223"),
+        parseUnits("0.2"),
+        parseUnits("0.067"),
+        parseUnits("0.0559"),
+        parseUnits("0.0671"),
+        parseUnits("0.0223"),
     ],
     itemStocks: [-1, 200, 150, 150, 300],
     itemTastes: ["sweet", "starchy", "sweet", "sweet", "pungent"],
@@ -78,29 +78,29 @@ async function main() {
 
     const ShopAgileWeb3 = await ethers.getContractFactory("ShopAgileWeb3");
     const shopAgileWeb3 = await ShopAgileWeb3.deploy(
-        testData.baseFee,
-        testData.percentFee,
-        testData.itemPrices,
-        testData.itemStocks,
-        testData.itemNames,
-        testData.pickLocNames,
-        testData.pickLocLocations,
-        testData.pickLocCities,
-        testData.pickLocStates,
-        testData.pickLocPhones
+        realData.baseFee,
+        realData.percentFee,
+        realData.itemPrices,
+        realData.itemStocks,
+        realData.itemNames,
+        realData.pickLocNames,
+        realData.pickLocLocations,
+        realData.pickLocCities,
+        realData.pickLocStates,
+        realData.pickLocPhones
     );
     await shopAgileWeb3.deployed();
 
     let itemsToUpdate = [];
 
-    for (let i = 0; i < testData.itemTastes.length; ++i) {
+    for (let i = 0; i < realData.itemTastes.length; ++i) {
         itemsToUpdate.push(
             shopAgileWeb3.updateItemAttributes(
                 i,
-                testData.itemTastes[i],
-                testData.itemColors[i],
-                testData.itemTextures[i],
-                testData.itemSizes[i]
+                realData.itemTastes[i],
+                realData.itemColors[i],
+                realData.itemTextures[i],
+                realData.itemSizes[i]
             )
         );
     }
