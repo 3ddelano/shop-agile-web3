@@ -175,7 +175,10 @@ function App() {
                         path="/"
                         element={
                             //  ----- Dapp -----
-                            <div className="flex-1 bg-gray-100 max-w-7xl w-full mx-auto p-2 px-4">
+                            <div className="flex-1 max-w-7xl w-full mx-auto p-2 px-4">
+                                <h1 className="text-2xl font-bold mt-2 mb-4">
+                                    Items For Sale
+                                </h1>
                                 {!!window.ethereum && loading && (
                                     <p className="font-bold">Loading...</p>
                                 )}
@@ -283,7 +286,7 @@ function MyOrders({ contract, items }) {
     }, [contract]);
 
     return (
-        <div className="flex-1 bg-gray-100 max-w-7xl w-full mx-auto p-2 px-4">
+        <div className="flex-1 max-w-7xl w-full mx-auto p-2 px-4">
             <h1 className="text-2xl font-bold mt-2 mb-4">My Orders</h1>
             {!!window.ethereum && (loading || items.length == 0) && (
                 <p className="font-bold">Loading...</p>
@@ -296,7 +299,7 @@ function MyOrders({ contract, items }) {
                         return (
                             <div
                                 key={idx}
-                                className="bg-gray-200 border-2 border-gray-300 rounded p-2 flex flex-col justify-between"
+                                className="bg-slate-100 border-2 border-slate-300 rounded p-2 flex flex-col justify-between"
                             >
                                 <div>
                                     <div
@@ -323,7 +326,7 @@ function MyOrders({ contract, items }) {
                                         {!loadingPickupLocations &&
                                             pickupLocations.length > 0 && (
                                                 <>
-                                                    <p className="font-semibold text-gray-500">
+                                                    <p className="font-semibold text-gray-500 mt-2">
                                                         {OrderStatuses[
                                                             order.status
                                                         ].name !== "Completed"
