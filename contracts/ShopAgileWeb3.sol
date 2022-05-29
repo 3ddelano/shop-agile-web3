@@ -47,6 +47,7 @@ contract ShopAgileWeb3 {
         uint quantity;
         uint pickupLocationId;
         OrderStatus status;
+        uint cost;
     }
 
     enum OrderStatus {
@@ -189,7 +190,8 @@ contract ShopAgileWeb3 {
             itemId: itemId,
             quantity: quantity,
             pickupLocationId: pickupLocationId,
-            status: OrderStatus.Ordered
+            status: OrderStatus.Ordered,
+            cost: cost
         });
 
         // Update stock of the item

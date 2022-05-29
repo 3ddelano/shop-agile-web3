@@ -109,6 +109,19 @@ async function main() {
 
     console.log("ShopAgileWeb3 address:", shopAgileWeb3.address);
 
+    const order = await shopAgileWeb3.placeOrder(1, 5, 0, {
+        value: ethers.utils.parseUnits("361250000000000000", "wei"),
+    });
+    await order.wait();
+
+    const order2 = await shopAgileWeb3.placeOrder(0, 2, 1, {
+        value: ethers.utils.parseUnits("410000000000000000", "wei"),
+    });
+    await order2.wait();
+
+    await shopAgileWeb3.collectOrder(1);
+
+    console.log(await shopAgileWeb3.getMyOrders());
     // We also save the contract's artifacts and address in the frontend directory
     saveFrontendFiles(shopAgileWeb3);
 }

@@ -1,12 +1,22 @@
 import { ethers } from "ethers";
 import { useState, useEffect } from "react";
 
-// import NoWalletDetected from "./components/NoWalletDetected";
+import { BrowserRouter, Route, Routes, Link } from "react-router-dom";
+
 import ShopAgileWeb3Artifact from "./contracts/ShopAgileWeb3.json";
 import contractAddress from "./contracts/contract-address.json";
 
 const CONTRACT_NETWORK_ID = "31337";
 const CONTRACT_NETWORK_NAME = "Hardhat localhost";
+
+const OrderStatuses = [
+    {
+        name: "Ordered",
+        color: "rgb(245, 158, 11)",
+    },
+    { name: "Completed", color: "rgb(34, 197, 94)" },
+];
+
 let _provider = undefined;
 
 function App() {
@@ -93,53 +103,58 @@ function App() {
     useEffect(() => {
         (async () => {
             if (!contract) return;
+            setLoading(true);
             let items = await contract.getAllItems();
             setLoading(false);
             setItems(items);
-            console.log(items);
         })();
     }, [contract]);
 
     // if (window.ethereum === undefined) return <NoWalletDetected />;
 
     return (
-        <div className="h-full w-full flex flex-col font-sans text-lg text-gray-900">
-            {/* ----- Navbar ---- */}
-            <div className="bg-slate-900 px-4 py-3 text-white">
-                <div className=" max-w-7xl w-full mx-auto flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">
-                        <a href="/">Shop Agile Web3</a>
-                    </h1>
+        <BrowserRouter>
+            <div className="h-full w-full flex flex-col font-sans text-lg text-gray-900">
+                {/* ----- Navbar ---- */}
+                <div className="bg-slate-900 px-4 py-3 text-white">
+                    <div className=" max-w-7xl w-full mx-auto flex justify-between items-center">
+                        <div className="flex flex-1 justify-between items-center mr-4">
+                            <h1 className="text-2xl font-bold">
+                                <Link to="/">Shop Agile Web3</Link>
+                            </h1>
 
-                    {selectedAddress == "" ? (
-                        <button
-                            onClick={() => _connectWallet()}
-                            className="px-4 py-2 rounded-2xl bg-yellow-500 hover:bg-yellow-600"
-                        >
-                            Connect Wallet
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => _resetState()}
-                            className="flex gap-x-2 bg-green-500/75 hover:bg-green-500/50 px-4 py-2 rounded-2xl items-center"
-                        >
-                            <p>Log Out</p>
-                            <p className="text-sm text-gray-200">
-                                {selectedAddress.substring(0, 5) +
-                                    "..." +
-                                    selectedAddress.substring(
-                                        selectedAddress.length - 4,
-                                        selectedAddress
-                                    )}
-                            </p>
-                        </button>
-                    )}
+                            <div>
+                                <Link to="/my-orders">My Orders</Link>
+                            </div>
+                        </div>
+
+                        {selectedAddress == "" ? (
+                            <button
+                                onClick={() => _connectWallet()}
+                                className="px-4 py-2 rounded-2xl bg-yellow-500 hover:bg-yellow-600"
+                            >
+                                Connect Wallet
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => _resetState()}
+                                className="flex gap-x-2 bg-green-500/75 hover:bg-green-500/50 px-4 py-2 rounded-2xl items-center"
+                            >
+                                <p>Log Out</p>
+                                <p className="text-sm text-gray-200">
+                                    {selectedAddress.substring(0, 5) +
+                                        "..." +
+                                        selectedAddress.substring(
+                                            selectedAddress.length - 4,
+                                            selectedAddress
+                                        )}
+                                </p>
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
-            {/* ----- /Navbar ---- */}
+                {/* ----- /Navbar ---- */}
 
-            {/* ----- Dapp ---- */}
-            <div className="flex-1 bg-gray-100 max-w-7xl w-full mx-auto p-2 px-4">
                 {window.ethereum == undefined && (
                     <h1 className="text-3xl">
                         Wallet not detected. Please install{" "}
@@ -154,74 +169,199 @@ function App() {
                         browser extension.
                     </h1>
                 )}
-                {!!window.ethereum && loading && (
-                    <p className="font-bold">Loading...</p>
-                )}
-
-                {!!window.ethereum && !loading && (
-                    <div className="items grid grid-cols-3 gap-4">
-                        {items.map((item, idx) => {
-                            return (
-                                <div
-                                    key={idx}
-                                    className="bg-amber-200 rounded p-2 flex flex-col justify-between"
-                                >
-                                    <div>
-                                        <p>Name: {item.name}</p>
-                                        <p>
-                                            Price:{" "}
-                                            {ethers.utils.formatUnits(
-                                                item.price,
-                                                "ether"
-                                            )}
-                                            {" ETH"}
-                                        </p>
-                                        {item.stock.gt(-1) && (
-                                            <p>
-                                                Stock: {item.stock.toString()}
-                                            </p>
-                                        )}
+                <Routes>
+                    <Route
+                        exact
+                        path="/"
+                        element={
+                            //  ----- Dapp -----
+                            <div className="flex-1 bg-gray-100 max-w-7xl w-full mx-auto p-2 px-4">
+                                {!!window.ethereum && loading && (
+                                    <p className="font-bold">Loading...</p>
+                                )}
+                                {!!window.ethereum && !loading && (
+                                    <div className="items grid grid-cols-3 gap-4">
+                                        {items.map((item, idx) => {
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="bg-amber-200 rounded p-2 flex flex-col justify-between"
+                                                >
+                                                    <div>
+                                                        <p>Name: {item.name}</p>
+                                                        <p>
+                                                            Price:{" "}
+                                                            {ethers.utils.formatUnits(
+                                                                item.price,
+                                                                "ether"
+                                                            )}
+                                                            {" ETH"}
+                                                        </p>
+                                                        {item.stock.gt(-1) && (
+                                                            <p>
+                                                                Stock:{" "}
+                                                                {item.stock.toString()}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex gap-2 mb-2">
+                                                            <label htmlFor="count">
+                                                                Quantity
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={1}
+                                                            />
+                                                        </div>
+                                                        <button className="bg-yellow-600 text-white border-white border-2 px-2 py-0.5 rounded">
+                                                            Place Order
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
+                                )}
+                            </div>
+                            // ----- /Dapp -----
+                        }
+                    />
+                    <Route
+                        exact
+                        path="/my-orders"
+                        element={<MyOrders contract={contract} items={items} />}
+                    />
+                </Routes>
+
+                {/* ----- Footer ---- */}
+                <div className="bg-slate-900 p-4 text-white">
+                    <div className="mx-auto max-w-7xl w-full">
+                        <p className="mb-2">
+                            DApp running on Polygon Mumbai Testnet!
+                        </p>
+                        <a
+                            className="text-blue-500 border-b-2 border-slate-900 hover:border-blue-600 mr-2"
+                            target="_blank"
+                            href="https://github.com/3ddelano/shop-agile-web3"
+                        >
+                            Github
+                        </a>
+                    </div>
+                </div>
+                {/* ----- Footer ---- */}
+            </div>
+        </BrowserRouter>
+    );
+}
+
+function MyOrders({ contract, items }) {
+    let [loading, setLoading] = useState(true);
+    let [loadingPickupLocations, setLoadingPickupLocations] = useState(true);
+
+    let [orders, setOrders] = useState([]);
+    let [pickupLocations, setPickupLocations] = useState([]);
+
+    useEffect(() => {
+        if (!contract) return;
+        (async () => {
+            setLoading(true);
+            const orders = await contract.getMyOrders();
+            setLoading(false);
+            if (orders.length > 0) setOrders(orders);
+        })();
+    }, [contract]);
+
+    useEffect(() => {
+        if (!contract) return;
+        (async () => {
+            setLoadingPickupLocations(true);
+            const pickupLocations = await contract.getAllPickupLocations();
+            setLoadingPickupLocations(false);
+            if (pickupLocations.length > 0) setPickupLocations(pickupLocations);
+        })();
+    }, [contract]);
+
+    return (
+        <div className="flex-1 bg-gray-100 max-w-7xl w-full mx-auto p-2 px-4">
+            <h1 className="text-2xl font-bold mt-2 mb-4">My Orders</h1>
+            {!!window.ethereum && (loading || items.length == 0) && (
+                <p className="font-bold">Loading...</p>
+            )}
+            {!!window.ethereum && !loading && items.length > 0 && (
+                <div className="items grid grid-cols-3 gap-4">
+                    {orders.map((order, idx) => {
+                        console.log("items. ", items.length);
+                        let item = items[order.itemId];
+                        return (
+                            <div
+                                key={idx}
+                                className="bg-gray-200 border-2 border-gray-300 rounded p-2 flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div
+                                        className="rounded-full text-xs text-white uppercase w-20 flex items-center justify-center py-0.5 tracking-wider"
+                                        style={{
+                                            backgroundColor:
+                                                OrderStatuses[order.status]
+                                                    .color,
+                                        }}
+                                    >
+                                        {OrderStatuses[order.status].name}
+                                    </div>
+                                    <p>Name: {item.name}</p>
+                                    <p>Quantity: {order.quantity.toString()}</p>
+                                    <p>
+                                        Cost:{" "}
+                                        {ethers.utils.formatUnits(
+                                            order.cost,
+                                            "ether"
+                                        )}
+                                        {" ETH"}
+                                    </p>
                                     <div>
-                                        <div className="flex gap-2 mb-2">
-                                            <label htmlFor="count">
-                                                Quantity
-                                            </label>
-                                            <input type="number" />
-                                        </div>
-                                        <button className="bg-slate-300 px-1 py-0.5 rounded">
-                                            Place Order
-                                        </button>
+                                        {!loadingPickupLocations &&
+                                            pickupLocations.length > 0 && (
+                                                <>
+                                                    <p className="font-semibold text-gray-500">
+                                                        {OrderStatuses[
+                                                            order.status
+                                                        ].name !== "Completed"
+                                                            ? "Collect At"
+                                                            : "Collected At"}
+                                                    </p>
+                                                    <div>
+                                                        <p>
+                                                            {
+                                                                pickupLocations[
+                                                                    order.pickupLocationId.toNumber()
+                                                                ].name
+                                                            }
+                                                        </p>
+                                                        <p>
+                                                            {
+                                                                pickupLocations[
+                                                                    order.pickupLocationId.toNumber()
+                                                                ].location
+                                                            }
+                                                        </p>
+                                                        <p>
+                                                            {
+                                                                pickupLocations[
+                                                                    order.pickupLocationId.toNumber()
+                                                                ].phone
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </>
+                                            )}
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-            {/* ----- /Dapp ---- */}
-            {/* ----- Footer ---- */}
-            <div className="bg-slate-900 p-4 text-white">
-                <div className="mx-auto max-w-7xl w-full">
-                    <p className="mb-2">
-                        DApp running on Polygon Mumbai Testnet!
-                    </p>
-                    <a
-                        className="text-blue-500 border-b-2 border-slate-900 hover:border-blue-600 mr-2"
-                        target="_blank"
-                        href="https://github.com/3ddelano/shop-agile-web3"
-                    >
-                        Github
-                    </a>
-                    {/* <a
-                    href=""
-                    className="text-blue-500 border-b-2 border-slate-600 hover:border-blue-600"
-                >
-                    View on EtherScan
-                </a> */}
+                            </div>
+                        );
+                    })}
                 </div>
-            </div>
-            {/* ----- Footer ---- */}
+            )}
         </div>
     );
 }
