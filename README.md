@@ -22,3 +22,5 @@ Features
 - Login with Web3 Wallet
 - Transactions / Order Tracking on Polygon
 - Machine learning powered recommendations
+
+![image](https://user-images.githubusercontent.com/82702670/170851936-bd9f845e-1cd9-473b-b2aa-c3f9561ce55e.png)
