@@ -25,6 +25,8 @@ function App() {
     let [contract, setContract] = useState(undefined);
     let [loading, setLoading] = useState(true);
     let [items, setItems] = useState([]);
+    let [loadingPickupLocations, setLoadingPickupLocations] = useState(true);
+    let [pickupLocations, setPickupLocations] = useState([]);
 
     const _resetState = () => {
         setSelectedAddress("");
@@ -110,7 +112,15 @@ function App() {
         })();
     }, [contract]);
 
-    // if (window.ethereum === undefined) return <NoWalletDetected />;
+    useEffect(() => {
+        if (!contract) return;
+        (async () => {
+            setLoadingPickupLocations(true);
+            const pickupLocations = await contract.getAllPickupLocations();
+            setLoadingPickupLocations(false);
+            if (pickupLocations.length > 0) setPickupLocations(pickupLocations);
+        })();
+    }, [contract]);
 
     return (
         <BrowserRouter>
@@ -233,7 +243,13 @@ function App() {
                     <Route
                         exact
                         path="/my-orders"
-                        element={<MyOrders contract={contract} items={items} />}
+                        element={
+                            <MyOrders
+                                contract={contract}
+                                items={items}
+                                pickupLocations={pickupLocations}
+                            />
+                        }
                     />
                 </Routes>
 
@@ -258,12 +274,10 @@ function App() {
     );
 }
 
-function MyOrders({ contract, items }) {
+function MyOrders({ contract, items, pickupLocations }) {
     let [loading, setLoading] = useState(true);
-    let [loadingPickupLocations, setLoadingPickupLocations] = useState(true);
 
     let [orders, setOrders] = useState([]);
-    let [pickupLocations, setPickupLocations] = useState([]);
 
     useEffect(() => {
         if (!contract) return;
@@ -275,56 +289,53 @@ function MyOrders({ contract, items }) {
         })();
     }, [contract]);
 
-    useEffect(() => {
-        if (!contract) return;
-        (async () => {
-            setLoadingPickupLocations(true);
-            const pickupLocations = await contract.getAllPickupLocations();
-            setLoadingPickupLocations(false);
-            if (pickupLocations.length > 0) setPickupLocations(pickupLocations);
-        })();
-    }, [contract]);
-
     return (
         <div className="flex-1 max-w-7xl w-full mx-auto p-2 px-4">
             <h1 className="text-2xl font-bold mt-2 mb-4">My Orders</h1>
-            {!!window.ethereum && (loading || items.length == 0) && (
-                <p className="font-bold">Loading...</p>
-            )}
-            {!!window.ethereum && !loading && items.length > 0 && (
-                <div className="items grid grid-cols-3 gap-4">
-                    {orders.map((order, idx) => {
-                        console.log("items. ", items.length);
-                        let item = items[order.itemId];
-                        return (
-                            <div
-                                key={idx}
-                                className="bg-slate-100 border-2 border-slate-300 rounded p-2 flex flex-col justify-between"
-                            >
-                                <div>
-                                    <div
-                                        className="rounded-full text-xs text-white uppercase w-20 flex items-center justify-center py-0.5 tracking-wider"
-                                        style={{
-                                            backgroundColor:
-                                                OrderStatuses[order.status]
-                                                    .color,
-                                        }}
-                                    >
-                                        {OrderStatuses[order.status].name}
-                                    </div>
-                                    <p>Name: {item.name}</p>
-                                    <p>Quantity: {order.quantity.toString()}</p>
-                                    <p>
-                                        Cost:{" "}
-                                        {ethers.utils.formatUnits(
-                                            order.cost,
-                                            "ether"
-                                        )}
-                                        {" ETH"}
-                                    </p>
+            {!!window.ethereum &&
+                (loading ||
+                    items.length == 0 ||
+                    pickupLocations.length == 0) && (
+                    <p className="font-bold">Loading...</p>
+                )}
+            {!!window.ethereum &&
+                !loading &&
+                items.length > 0 &&
+                pickupLocations.length > 0 && (
+                    <div className="items grid grid-cols-3 gap-4">
+                        {orders.map((order, idx) => {
+                            let item = items[order.itemId];
+                            return (
+                                <div
+                                    key={idx}
+                                    className="bg-slate-100 border-2 border-slate-300 rounded p-2 flex flex-col justify-between"
+                                >
                                     <div>
-                                        {!loadingPickupLocations &&
-                                            pickupLocations.length > 0 && (
+                                        <div
+                                            className="rounded-full text-xs text-white uppercase w-20 flex items-center justify-center py-0.5 tracking-wider"
+                                            style={{
+                                                backgroundColor:
+                                                    OrderStatuses[order.status]
+                                                        .color,
+                                            }}
+                                        >
+                                            {OrderStatuses[order.status].name}
+                                        </div>
+                                        <p>Name: {item.name}</p>
+                                        <p>
+                                            Quantity:{" "}
+                                            {order.quantity.toString()}
+                                        </p>
+                                        <p>
+                                            Cost:{" "}
+                                            {ethers.utils.formatUnits(
+                                                order.cost,
+                                                "ether"
+                                            )}
+                                            {" ETH"}
+                                        </p>
+                                        <div>
+                                            {pickupLocations.length > 0 && (
                                                 <>
                                                     <p className="font-semibold text-gray-500 mt-2">
                                                         {OrderStatuses[
@@ -358,13 +369,13 @@ function MyOrders({ contract, items }) {
                                                     </div>
                                                 </>
                                             )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                            );
+                        })}
+                    </div>
+                )}
         </div>
     );
 }
